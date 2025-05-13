@@ -7,12 +7,13 @@ const auth = require('../middleware/auth');
 
 router.post('/checkin', async (req, res) => {
   const { phone } = req.body;
+  const { name } = req.body;
   if (!phone) return res.status(400).json({ message: 'Phone number is required' });
 
   try {
     let user = await User.findOne({ phone });
     if (!user) {
-      user = new User({ phone });
+      user = new User({ phone, name });
       await user.save();
     }
 
