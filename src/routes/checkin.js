@@ -79,7 +79,7 @@ router.get('/users', auth, async (req, res) => {
 });
 
 // Get all check-ins
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const checkIns = await CheckIn.find().populate('userId', 'phone name');
     res.json(checkIns);
