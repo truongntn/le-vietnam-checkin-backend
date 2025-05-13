@@ -1,15 +1,16 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const User = require('../models/User');
-const CheckIn = require('../models/CheckIn');
-const Queue = require('../models/Queue');
-const auth = require('../middleware/auth');
+const User = require("../models/User");
+const CheckIn = require("../models/CheckIn");
+const Queue = require("../models/Queue");
+const auth = require("../middleware/auth");
 
-router.post('/checkin', async (req, res) => {
+router.post("/checkin", async (req, res) => {
   const { phone } = req.body;
   const { name } = req.body;
   const { status } = req.body;
-  if (!phone) return res.status(400).json({ message: 'Phone number is required' });
+  if (!phone)
+    return res.status(400).json({ message: "Phone number is required" });
 
   try {
     let user = await User.findOne({ phone });
@@ -46,16 +47,33 @@ router.post('/checkin', async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-router.get('/user/:phone', async (req, res) => {
+router.post("/completeCheckin", async (req, res) => {
+  try {
+    const { id } = req.body;
+    const checkIn = await CheckIn.findById(id);
+    if (!checkIn)
+      return res.status(404).json({ message: "Check-in not found" });
+
+    checkIn.status = "done";
+    await checkIn.save();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/user/:phone", async (req, res) => {
   try {
     const user = await User.findOne({ phone: req.params.phone });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    const queueEntry = await Queue.findOne({ userId: user._id }).sort({ checkInTime: -1 });
+    const queueEntry = await Queue.findOne({ userId: user._id }).sort({
+      checkInTime: -1,
+    });
     res.json({
       rewardPoints: user.rewardPoints,
       queuePosition: queueEntry ? queueEntry.position : null,
@@ -65,59 +83,71 @@ router.get('/user/:phone', async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-router.get('/users', auth, async (req, res) => {
+router.get("/users", auth, async (req, res) => {
   try {
     const users = await User.find();
     res.json(users);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // Get all check-ins
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
-    const checkIns = await CheckIn.find({ status: "waiting"}).sort( { checkInTime: -1 } ).populate('userId', 'phone name');
+    const checkIns = await CheckIn.find({ status: "waiting" })
+      .sort({ checkInTime: -1 })
+      .populate("userId", "phone name");
     res.json(checkIns);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // Update a check-in
-router.put('/:id', auth, async (req, res) => {
+router.put("/:id", auth, async (req, res) => {
   const { rewardPointsEarned } = req.body;
   try {
     const checkIn = await CheckIn.findById(req.params.id);
-    if (!checkIn) return res.status(404).json({ message: 'Check-in not found' });
+    if (!checkIn)
+      return res.status(404).json({ message: "Check-in not found" });
 
-    checkIn.rewardPointsEarned = rewardPointsEarned !== undefined ? rewardPointsEarned : checkIn.rewardPointsEarned;
+    checkIn.rewardPointsEarned =
+      rewardPointsEarned !== undefined
+        ? rewardPointsEarned
+        : checkIn.rewardPointsEarned;
     await checkIn.save();
 
     // Update user's reward points
     const user = await User.findById(checkIn.userId);
-    const oldPoints = await CheckIn.findById(req.params.id).select('rewardPointsEarned');
-    user.rewardPoints = user.rewardPoints - oldPoints.rewardPointsEarned + checkIn.rewardPointsEarned;
+    const oldPoints = await CheckIn.findById(req.params.id).select(
+      "rewardPointsEarned"
+    );
+    user.rewardPoints =
+      user.rewardPoints -
+      oldPoints.rewardPointsEarned +
+      checkIn.rewardPointsEarned;
     await user.save();
 
     res.json(checkIn);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
 // Delete a check-in
-router.delete('/:id', auth, async (req, res) => {
+router.delete("/:id", auth, async (req, res) => {
   try {
     const checkIn = await CheckIn.findById(req.params.id);
-    if (!checkIn) return res.status(404).json({ message: 'Check-in not found' });
+    if (!checkIn)
+      return res.status(404).json({ message: "Check-in not found" });
 
     // Subtract points from user
     const user = await User.findById(checkIn.userId);
@@ -125,10 +155,10 @@ router.delete('/:id', auth, async (req, res) => {
     await user.save();
 
     await CheckIn.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Check-in deleted' });
+    res.json({ message: "Check-in deleted" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
