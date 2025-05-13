@@ -17,7 +17,7 @@ router.post('/checkin', async (req, res) => {
       await user.save();
     }
 
-    const checkIn = new CheckIn({ userId: user._id });
+    const checkIn = new CheckIn({ userId: user._id, phone, name });
     await checkIn.save();
 
     user.rewardPoints += checkIn.rewardPointsEarned;
