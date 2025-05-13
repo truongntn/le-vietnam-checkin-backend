@@ -19,6 +19,7 @@ app.use(
     origin: [
       "https://le-vietnam-checkin-system.vercel.app",
       "https://le-vietnam-checkin-system-er0et5gmq-truongntns-projects.vercel.app",
+      "https://le-vietnam-kitchen.vercel.app",
       "http://localhost:3000",
       "http://localhost:3001",
     ],
