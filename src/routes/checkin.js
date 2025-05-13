@@ -82,7 +82,7 @@ router.get('/users', auth, async (req, res) => {
 // Get all check-ins
 router.get('/', async (req, res) => {
   try {
-    const checkIns = await CheckIn.find().sort( { checkInTime: -1 } ).populate('userId', 'phone name');
+    const checkIns = await CheckIn.find({ status: "waiting"}).sort( { checkInTime: -1 } ).populate('userId', 'phone name');
     res.json(checkIns);
   } catch (error) {
     console.error(error);
