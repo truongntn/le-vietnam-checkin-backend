@@ -132,7 +132,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 app.get('/', async (req, res) =>  {
-  await createBookingPressAppointment({customer_phone: '1234567890'});
+  //await createBookingPressAppointment({customer_phone: '1234567890'});
   res.send('API server is running successfully!');
 })
 
