@@ -76,14 +76,31 @@ async function getBookingPressAppointments() {
 // Function to create a new appointment (hypothetical)
 async function createBookingPressAppointment(appointmentData) {
   try {
+    // Use current date (2025-05-30) for appointment_date
+    const currentDate = new Date();
+    const formattedDate = currentDate.toISOString().split('T')[0]; // "2025-05-30"
+
+    // Use current time (11:13) for appointment_time
+    const hours = String(currentDate.getHours()).padStart(2, '0');
+    const minutes = String(currentDate.getMinutes()).padStart(2, '0');
+    const appointmentTime = `${hours}:${minutes}`; // "11:13"
+
+    // Validate time format (HH:MM)
+    if (!/^\d{2}:\d{2}$/.test(appointmentTime)) {
+      throw new Error('Invalid time format. Use HH:MM.');
+    }
+
     // Replace with actual BookingPress endpoint for creating appointments
-    const response = await api.post("/bookingpress_appointments", {
-      title: appointmentData.title, // e.g., "Haircut Appointment"
-      status: "publish",
-      bookingpress_service: appointmentData.serviceId, // Hypothetical field
-      bookingpress_date: appointmentData.date, // e.g., "2025-05-01"
-      bookingpress_time: appointmentData.time, // e.g., "10:00"
-      bookingpress_customer: appointmentData.customerId, // Hypothetical field
+    const response = await axios.post(WP_URL + "/wp-json/bookingpress/v1/add-booking", {
+      service_id: 35, // "General Appointment"
+      customer_phone: appointmentData.customer_phone,
+      customer_name: appointmentData.customer_phone, 
+      customer_firstname: appointmentData.customer_phone, 
+      customer_lastname: "",
+      appointment_date: formattedDate, 
+      appointment_time: appointmentTime,
+      payment_amount: 0.0,
+      payment_status: "pending",
     });
     console.log("Created Appointment:", response.data);
     return response.data;
@@ -115,6 +132,26 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 app.get('/', async (req, res) =>  {
-  await getBookingPressServices();
-  res.send('...')
+  await createBookingPressAppointment({customer_phone: '1234567890'});
+  res.send('API server is running successfully!');
 })
+
+app.post('/createBooking', async (req, res) => {
+  try {
+    const { customer_phone } = req.body;
+
+    if (!customer_phone) {
+      return res.status(400).json({ status: 'error', message: 'Missing required field: customer_phone' });
+    }
+
+    const appointmentData = {
+      customer_phone: customer_phone,
+    };
+
+    const result = await createBookingPressAppointment(appointmentData);
+    res.status(200).json({ status: 'success', message: 'Booking created', data: result });
+  } catch (error) {
+    console.error('POST / error:', error.message);
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
