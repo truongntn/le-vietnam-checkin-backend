@@ -97,7 +97,7 @@ Content-Type: application/json
       "productId": "PHO001",
       "quantity": 2,
       "unitPrice": 15.00,
-      "specialInstructions": "Extra noodles",
+      "note": "Extra noodles",
       "category": "Main Course"
     },
     {

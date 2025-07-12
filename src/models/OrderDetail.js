@@ -7,7 +7,7 @@ const orderDetailSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1 },
   unitPrice: { type: Number, required: true },
   totalPrice: { type: Number, required: true },
-  specialInstructions: { type: String, default: '' },
+  note: { type: String, default: '' },
   category: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });

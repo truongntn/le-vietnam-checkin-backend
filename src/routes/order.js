@@ -49,13 +49,13 @@ router.post("/", async (req, res) => {
         productId: item.productId,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        specialInstructions: item.specialInstructions || '',
+        note: item.note || '',
         category: item.category || '',
         totalPrice: itemTotal
       });
     }
 
-    const tax = subtotal * 0.1; // 10% tax
+    const tax = subtotal * 0; // 10% tax
     const totalAmount = subtotal + tax;
 
     // Create order
