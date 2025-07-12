@@ -39,7 +39,12 @@ router.post("/checkin", async (req, res) => {
       await user.save();
     }
 
-    const checkIn = new CheckIn({ userId: user._id, phone, name: user.name, status });
+    const checkIn = new CheckIn({ 
+      userId: user._id, 
+      phone, 
+      name: user.name || 'Guest', 
+      status 
+    });
     await checkIn.save();
 
     user.rewardPoints += checkIn.rewardPointsEarned;
@@ -52,8 +57,8 @@ router.post("/checkin", async (req, res) => {
       userId: user._id,
       position,
       estimatedWaitTime,
-      customerName: user.name,
-      name: user.name,
+      customerName: user.name || 'Guest',
+      name: user.name || 'Guest',
       customerPhone: user.phone,
     });
     await queueEntry.save();
@@ -62,7 +67,7 @@ router.post("/checkin", async (req, res) => {
       rewardPoints: user.rewardPoints,
       queuePosition: position,
       estimatedWaitTime,
-      customerName: user.name,
+      customerName: user.name || 'Guest',
       customerPhone: user.phone,
     });
   } catch (error) {
