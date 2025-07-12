@@ -99,13 +99,13 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get all orders (with pagination)
+// Get all orders (with pagination) - excluding completed orders
 router.get("/", async (req, res) => {
   try {
     const { page = 1, limit = 10, status, phone } = req.query;
     const skip = (page - 1) * limit;
 
-    let query = {};
+    let query = { status: { $ne: 'completed' } }; // Exclude completed orders
     if (status) query.status = status;
     if (phone) query.phone = phone;
 

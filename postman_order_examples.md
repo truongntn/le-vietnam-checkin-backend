@@ -134,7 +134,7 @@ Content-Type: application/json
 
 ---
 
-## 2. Get All Orders (Admin)
+## 2. Get All Orders (Admin) - Excluding Completed Orders
 
 ### Request
 **Method:** `GET`  
@@ -183,6 +183,8 @@ Authorization: Bearer YOUR_JWT_TOKEN
   "totalPages": 1
 }
 ```
+
+**Note:** This endpoint automatically excludes orders with status "completed". Only active orders (pending, confirmed, preparing, ready, cancelled) are returned.
 
 ---
 
