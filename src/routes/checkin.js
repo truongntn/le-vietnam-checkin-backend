@@ -8,7 +8,6 @@ const auth = require("../middleware/auth");
 
 router.post("/checkin", async (req, res) => {
   const { phone } = req.body;
-  const { name } = req.body;
   const { status } = req.body;
   if (!phone)
     return res.status(400).json({ message: "Phone number is required" });
@@ -36,11 +35,11 @@ router.post("/checkin", async (req, res) => {
 
     let user = await User.findOne({ phone });
     if (!user) {
-      user = new User({ phone, name });
+      user = new User({ phone });
       await user.save();
     }
 
-    const checkIn = new CheckIn({ userId: user._id, phone, name, status });
+    const checkIn = new CheckIn({ userId: user._id, phone, name: user.name, status });
     await checkIn.save();
 
     user.rewardPoints += checkIn.rewardPointsEarned;

@@ -616,8 +616,7 @@ Content-Type: application/json
 ### Body
 ```json
 {
-  "phone": "0123456789",
-  "name": "Nguyen Van A"
+  "phone": "0123456789"
 }
 ```
 
