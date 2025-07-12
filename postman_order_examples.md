@@ -467,6 +467,19 @@ Authorization: Bearer YOUR_JWT_TOKEN
 }
 ```
 
+### 400 Bad Request (Pending Order Check-in)
+```json
+{
+  "message": "Cannot check in. You have a pending order that needs to be completed first.",
+  "pendingOrder": {
+    "orderNumber": "ORD1706627400000123",
+    "status": "preparing",
+    "totalAmount": 38.50,
+    "createdAt": "2025-01-30T07:30:00.000Z"
+  }
+}
+```
+
 ### 404 Not Found (Order Not Found)
 ```json
 {
@@ -584,5 +597,89 @@ Authorization: Bearer YOUR_JWT_TOKEN
   "paymentMethod": "mobile_payment",
   "notes": "Table 3, please make it spicy",
   "estimatedPickupTime": "2025-01-30T16:00:00.000Z"
+}
+```
+
+---
+
+## Check-in with Pending Order Check
+
+### Request
+**Method:** `POST`  
+**URL:** `http://localhost:5000/api/checkin/checkin`
+
+### Headers
+```
+Content-Type: application/json
+```
+
+### Body
+```json
+{
+  "phone": "0123456789",
+  "name": "Nguyen Van A"
+}
+```
+
+### Expected Response (No Pending Orders)
+```json
+{
+  "rewardPoints": 25,
+  "queuePosition": 3,
+  "estimatedWaitTime": 15,
+  "customerName": "Nguyen Van A",
+  "customerPhone": "0123456789"
+}
+```
+
+### Expected Response (With Pending Order)
+```json
+{
+  "message": "Cannot check in. You have a pending order that needs to be completed first.",
+  "pendingOrder": {
+    "orderNumber": "ORD1706627400000123",
+    "status": "preparing",
+    "totalAmount": 38.50,
+    "createdAt": "2025-01-30T07:30:00.000Z"
+  }
+}
+```
+
+---
+
+## Get User Info with Pending Order Status
+
+### Request
+**Method:** `GET`  
+**URL:** `http://localhost:5000/api/checkin/user/0123456789`
+
+### Expected Response (No Pending Orders)
+```json
+{
+  "rewardPoints": 25,
+  "queuePosition": 3,
+  "estimatedWaitTime": 15,
+  "customerName": "Nguyen Van A",
+  "customerPhone": "0123456789",
+  "hasPendingOrder": false,
+  "pendingOrder": null
+}
+```
+
+### Expected Response (With Pending Order)
+```json
+{
+  "rewardPoints": 25,
+  "queuePosition": null,
+  "estimatedWaitTime": null,
+  "customerName": "Nguyen Van A",
+  "customerPhone": "0123456789",
+  "hasPendingOrder": true,
+  "pendingOrder": {
+    "orderNumber": "ORD1706627400000123",
+    "status": "preparing",
+    "totalAmount": 38.50,
+    "createdAt": "2025-01-30T07:30:00.000Z"
+  }
 }
 ``` 

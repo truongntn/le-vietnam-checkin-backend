@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../models/User");
 const CheckIn = require("../models/CheckIn");
 const Queue = require("../models/Queue");
+const Order = require("../models/Order");
 const auth = require("../middleware/auth");
 
 router.post("/checkin", async (req, res) => {
@@ -13,6 +14,26 @@ router.post("/checkin", async (req, res) => {
     return res.status(400).json({ message: "Phone number is required" });
 
   try {
+    // Check for pending orders first
+    const pendingOrder = await Order.findOne({ 
+      phone: phone, 
+      status: { $in: ['pending', 'confirmed', 'preparing', 'ready'] } 
+    });
+
+    if (pendingOrder) {
+      return res.status(400).json({ 
+        message: "You have a waiting order.",
+        pendingOrder: {
+          orderNumber: pendingOrder.orderNumber,
+          status: pendingOrder.status,
+          totalAmount: pendingOrder.totalAmount,
+          createdAt: pendingOrder.createdAt,
+          phone: pendingOrder.phone,
+          name: pendingOrder.name,
+        }
+      });
+    }
+
     let user = await User.findOne({ phone });
     if (!user) {
       user = new User({ phone, name });
@@ -74,12 +95,26 @@ router.get("/user/:phone", async (req, res) => {
     const queueEntry = await Queue.findOne({ userId: user._id }).sort({
       checkInTime: -1,
     });
+
+    // Check for pending orders
+    const pendingOrder = await Order.findOne({ 
+      phone: req.params.phone, 
+      status: { $in: ['pending', 'confirmed', 'preparing', 'ready'] } 
+    });
+
     res.json({
       rewardPoints: user.rewardPoints,
       queuePosition: queueEntry ? queueEntry.position : null,
       estimatedWaitTime: queueEntry ? queueEntry.estimatedWaitTime : null,
       customerName: user.name,
       customerPhone: user.phone,
+      hasPendingOrder: !!pendingOrder,
+      pendingOrder: pendingOrder ? {
+        orderNumber: pendingOrder.orderNumber,
+        status: pendingOrder.status,
+        totalAmount: pendingOrder.totalAmount,
+        createdAt: pendingOrder.createdAt
+      } : null
     });
   } catch (error) {
     console.error(error);
