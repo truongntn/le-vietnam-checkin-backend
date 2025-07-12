@@ -21,6 +21,8 @@ app.use(
       "https://le-vietnam-checkin-system.vercel.app",
       "https://le-vietnam-checkin-system-er0et5gmq-truongntns-projects.vercel.app",
       "https://le-vietnam-kitchen.vercel.app",
+      "https://le-vietnam-customer.vercel.app",
+      "https://le-vietnam-customer-oyxob39a0-truongntns-projects.vercel.app",
       "http://localhost:3000",
       "http://localhost:3001",
     ],
