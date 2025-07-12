@@ -100,7 +100,7 @@ router.post("/", async (req, res) => {
 });
 
 // Get all orders (with pagination)
-router.get("/", auth, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const { page = 1, limit = 10, status, phone } = req.query;
     const skip = (page - 1) * limit;
