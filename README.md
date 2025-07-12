@@ -6,8 +6,11 @@ Backend and admin dashboard for the kiosk-checkin app, built with Node.js, Mongo
 - User check-in via phone number (frontend at https://github.com/truongntn/kiosk-checkin)
 - Reward points tracking (10 points per check-in by default)
 - Queue management with estimated wait times
-- Admin dashboard to manage users, check-ins, reward points, and queue
-- CRUD operations for users and check-in transactions
+- Order management with detailed order tracking
+- Payment status tracking and management
+- Order statistics and reporting
+- Admin dashboard to manage users, check-ins, reward points, queue, and orders
+- CRUD operations for users, check-ins, and orders
 
 ## Prerequisites
 - Node.js (>=14.x)
@@ -56,12 +59,80 @@ Backend and admin dashboard for the kiosk-checkin app, built with Node.js, Mongo
    The dashboard will run at `http://localhost:3000`.
 
 ## API Endpoints
+
+### Check-in & Queue Management
 - `POST /api/checkin/checkin`: Check in a user by phone number
 - `GET /api/checkin/user/:phone`: Get user details (reward points, queue status)
-- `POST /api/auth/login`: Admin login
+- `GET /api/checkin/users`: Get all users (admin)
 - `GET /api/queue`: Get current queue (admin)
 - `DELETE /api/queue/:id`: Remove a queue entry (admin)
-- `GET /api/checkin/users`: Get all users (admin)
+
+### Authentication
+- `POST /api/auth/login`: Admin login
+
+### Order Management
+- `POST /api/orders`: Create a new order
+- `GET /api/orders`: Get all orders (with pagination and filtering)
+- `GET /api/orders/:id`: Get order by ID with details
+- `GET /api/orders/user/:phone`: Get orders by user phone
+- `PUT /api/orders/:id/status`: Update order status
+- `PUT /api/orders/:id/payment`: Update payment status
+- `PUT /api/orders/:id`: Update order details
+- `DELETE /api/orders/:id`: Delete order
+- `GET /api/orders/stats/overview`: Get order statistics
+
+## Order Management
+
+### Creating an Order
+```bash
+POST /api/orders
+Content-Type: application/json
+
+{
+  "phone": "1234567890",
+  "name": "John Doe",
+  "items": [
+    {
+      "productName": "Pho Bo",
+      "productId": "PHO001",
+      "quantity": 2,
+      "unitPrice": 15.00,
+      "specialInstructions": "Extra noodles",
+      "category": "Main Course"
+    },
+    {
+      "productName": "Vietnamese Coffee",
+      "productId": "COF001",
+      "quantity": 1,
+      "unitPrice": 5.00,
+      "category": "Beverages"
+    }
+  ],
+  "paymentMethod": "cash",
+  "notes": "Please make it spicy",
+  "estimatedPickupTime": "2025-01-30T14:30:00.000Z"
+}
+```
+
+### Order Status Flow
+1. **pending** - Order created, waiting for confirmation
+2. **confirmed** - Order confirmed by staff
+3. **preparing** - Order is being prepared
+4. **ready** - Order is ready for pickup
+5. **completed** - Order has been picked up
+6. **cancelled** - Order has been cancelled
+
+### Payment Status
+- **pending** - Payment not yet received
+- **paid** - Payment completed
+- **failed** - Payment failed
+
+### Order Statistics
+The `/api/orders/stats/overview` endpoint provides:
+- Total number of orders
+- Number of pending orders
+- Number of completed orders
+- Total revenue from completed orders
 
 ## Admin Dashboard
 - Login with `username: admin`, `password: password`

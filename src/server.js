@@ -7,6 +7,7 @@ const checkInRoutes = require("./routes/checkin");
 const queueRoutes = require("./routes/queue");
 const userRoutes = require("./routes/user");
 const staffRoutes = require("./routes/staff");
+const orderRoutes = require("./routes/order");
 const cron = require("node-cron");
 const axios = require("axios");
 
@@ -118,6 +119,7 @@ app.use("/api/checkin", checkInRoutes);
 app.use("/api/queues", queueRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/orders", orderRoutes);
 
 cron.schedule("*/5 * * * *", async () => {
   try {
