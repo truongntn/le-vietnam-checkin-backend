@@ -170,7 +170,7 @@ router.get("/user/:phone", async (req, res) => {
 });
 
 // Update order status
-router.put("/:id/status", auth, async (req, res) => {
+router.put("/:id/status", async (req, res) => {
   const { status } = req.body;
   
   if (!status) {
