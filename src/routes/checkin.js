@@ -20,6 +20,10 @@ router.post("/checkin", async (req, res) => {
     });
 
     if (pendingOrder) {
+      if (!pendingOrder.checkinStatus) {
+        pendingOrder.checkinStatus = true;
+        await pendingOrder.save();
+      }
       return res.status(400).json({ 
         message: "You have a waiting order.",
         pendingOrder: {
