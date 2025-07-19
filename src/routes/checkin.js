@@ -63,6 +63,17 @@ router.post("/checkin", async (req, res) => {
     });
     await queueEntry.save();
 
+    // Update latest active order's checkin_status to true
+    const latestOrder = await Order.findOne({
+      phone: user.phone,
+      status: { $in: ['pending', 'confirmed', 'preparing', 'ready'] },
+      checkin_status: false
+    }).sort({ createdAt: -1 });
+    if (latestOrder) {
+      latestOrder.checkin_status = true;
+      await latestOrder.save();
+    }
+
     res.json({
       rewardPoints: user.rewardPoints,
       queuePosition: position,
