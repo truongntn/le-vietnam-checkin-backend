@@ -298,4 +298,22 @@ router.get("/stats/overview", auth, async (req, res) => {
   }
 });
 
+// Get latest order with checkinStatus: true and active status
+router.get("/latest", async (req, res) => {
+  try {
+    const query = {
+      status: { $in: ['pending', 'confirmed', 'preparing', 'ready'] },
+      checkinStatus: true
+    };
+    const latestOrder = await Order.findOne(query).sort({ createdAt: -1 });
+    if (!latestOrder) {
+      return res.status(404).json({ message: "No order found matching the condition." });
+    }
+    res.json(latestOrder);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router; 
