@@ -27,6 +27,7 @@ const orderSchema = new mongoose.Schema({
   notes: { type: String, default: '' },
   estimatedPickupTime: { type: Date },
   checkinStatus: { type: Boolean, default: false },
+  showWelcome: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

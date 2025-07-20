@@ -134,12 +134,15 @@ router.get("/latest", async (req, res) => {
   try {
     const query = {
       status: { $in: ['pending', 'confirmed', 'preparing', 'ready'] },
-      checkinStatus: true
+      checkinStatus: true,
+      showWelcome: false
     };
     const latestOrder = await Order.findOne(query).sort({ createdAt: -1 });
     if (!latestOrder) {
       return res.status(404).json({ message: "No order found matching the condition." });
     }
+    latestOrder.showWelcome = true;
+    await latestOrder.save();
     res.json(latestOrder);
   } catch (error) {
     console.error(error);
