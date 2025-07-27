@@ -10,6 +10,9 @@ const staffRoutes = require("./routes/staff");
 const orderRoutes = require("./routes/order");
 const cron = require("node-cron");
 const axios = require("axios");
+const io = new Server(server, {
+  cors: { origin: "*" }
+});
 
 const app = express();
 
@@ -30,6 +33,18 @@ app.use(
   })
 );
 app.use(express.json());
+
+io.on("connection", (socket) => {
+  console.log("A user connected");
+
+  socket.on("phone", (phoneNumber) => {
+    console.log("Received phone number:", phoneNumber);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("A user disconnected");
+  });
+});
 
 // Configuration
 const WP_URL = "https://fansynails.com.au"; // Replace with your WordPress site URL
