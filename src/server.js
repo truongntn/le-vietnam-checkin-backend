@@ -10,11 +10,12 @@ const staffRoutes = require("./routes/staff");
 const orderRoutes = require("./routes/order");
 const cron = require("node-cron");
 const axios = require("axios");
+
+const app = express();
+const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: "*" }
 });
-
-const app = express();
 
 connectDB();
 
