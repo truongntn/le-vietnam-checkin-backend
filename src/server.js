@@ -12,7 +12,7 @@ const cron = require("node-cron");
 const axios = require("axios");
 const http = require("http");
 const { Server } = require("socket.io");
-const throttle = require("lodash.throttle");
+const lodash = require("lodash");
 
 const app = express();
 const server = http.createServer(app);
@@ -61,7 +61,7 @@ app.use(express.json());
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  const throttledPhoneEmit = throttle((phoneNumber) => {
+  const throttledPhoneEmit = lodash.throttle((phoneNumber) => {
     console.log("Received phone number:", phoneNumber);
     try {
       socket.emit("phoneResponse", {
