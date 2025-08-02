@@ -77,7 +77,7 @@ io.on("connection", (socket) => {
   socket.on("checkin", async (phoneNumber) => {
     console.log("Received check-in with phone number:", phoneNumber);
     try {
-      socket.broadcast.emit("receivePhoneNumber", { phoneNumber });
+      socket.broadcast.emit("checkin", { phoneNumber });
     } catch (error) {
       socket.emit("phoneResponse", { status: "error", message: error.message });
     }
