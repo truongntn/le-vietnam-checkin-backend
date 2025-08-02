@@ -17,16 +17,25 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [
-      "https://le-vietnam-checkin-system.vercel.app",
-      "https://le-vietnam-checkin-system-er0et5gmq-truongntns-projects.vercel.app",
-      "https://le-vietnam-kitchen.vercel.app",
-      "https://le-vietnam-customer.vercel.app",
-      "https://le-vietnam-customer-oyxob39a0-truongntns-projects.vercel.app",
-      "https://le-vietnam-notification.vercel.app",
-      "http://localhost:3000",
-      "http://localhost:3001",
-    ],
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        "https://le-vietnam-checkin-system.vercel.app",
+        "https://le-vietnam-checkin-system-er0et5gmq-truongntns-projects.vercel.app",
+        "https://le-vietnam-kitchen.vercel.app",
+        "https://le-vietnam-customer.vercel.app",
+        "https://le-vietnam-customer-oyxob39a0-truongntns-projects.vercel.app",
+        "https://le-vietnam-notification.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:3001",
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
   },
 });
 
