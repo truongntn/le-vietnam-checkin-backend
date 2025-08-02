@@ -54,9 +54,10 @@ io.on("connection", (socket) => {
   socket.on("phone", async (phoneNumber) => {
     console.log("Received phone number:", phoneNumber);
     try {
-      const appointmentData = { customer_phone: phoneNumber };
-      const result = await createBookingPressAppointment(appointmentData);
-      socket.emit("phoneResponse", { status: "success", message: "Booking created", data: result });
+      socket.emit("phoneResponse", {
+        status: "success",
+        message: "Phone number received",
+      });
     } catch (error) {
       socket.emit("phoneResponse", { status: "error", message: error.message });
     }
@@ -134,7 +135,10 @@ async function createBookingPressAppointment(appointmentData) {
     console.log("Created Appointment:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error creating appointment:", error.response ? error.response.data : error.message);
+    console.error(
+      "Error creating appointment:",
+      error.response ? error.response.data : error.message
+    );
     throw error;
   }
 }
@@ -169,7 +173,12 @@ app.post("/createBooking", async (req, res) => {
     const { customer_phone } = req.body;
 
     if (!customer_phone) {
-      return res.status(400).json({ status: "error", message: "Missing required field: customer_phone" });
+      return res
+        .status(400)
+        .json({
+          status: "error",
+          message: "Missing required field: customer_phone",
+        });
     }
 
     const appointmentData = {
@@ -177,7 +186,9 @@ app.post("/createBooking", async (req, res) => {
     };
 
     const result = await createBookingPressAppointment(appointmentData);
-    res.status(200).json({ status: "success", message: "Booking created", data: result });
+    res
+      .status(200)
+      .json({ status: "success", message: "Booking created", data: result });
   } catch (error) {
     console.error("POST /createBooking error:", error.message);
     res.status(500).json({ status: "error", message: error.message });
