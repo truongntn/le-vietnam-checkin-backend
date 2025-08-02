@@ -16,7 +16,18 @@ const { Server } = require("socket.io");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" }
+  cors: {
+    origin: [
+      "https://le-vietnam-checkin-system.vercel.app",
+      "https://le-vietnam-checkin-system-er0et5gmq-truongntns-projects.vercel.app",
+      "https://le-vietnam-kitchen.vercel.app",
+      "https://le-vietnam-customer.vercel.app",
+      "https://le-vietnam-customer-oyxob39a0-truongntns-projects.vercel.app",
+      "https://le-vietnam-notification.vercel.app",
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ],
+  },
 });
 
 connectDB();
@@ -40,8 +51,15 @@ app.use(express.json());
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  socket.on("phone", (phoneNumber) => {
+  socket.on("phone", async (phoneNumber) => {
     console.log("Received phone number:", phoneNumber);
+    try {
+      const appointmentData = { customer_phone: phoneNumber };
+      const result = await createBookingPressAppointment(appointmentData);
+      socket.emit("phoneResponse", { status: "success", message: "Booking created", data: result });
+    } catch (error) {
+      socket.emit("phoneResponse", { status: "error", message: error.message });
+    }
   });
 
   socket.on("disconnect", () => {
@@ -50,11 +68,9 @@ io.on("connection", (socket) => {
 });
 
 // Configuration
-const WP_URL = "https://fansynails.com.au"; // Replace with your WordPress site URL
-const USERNAME = "info@fansynails.com.au"; // WordPress username
-const APP_PASSWORD = "Fansynails@2025"; // Application Password from WordPress
-const API_BASE = `${WP_URL}/wp-json/wp/v2`; // Base URL for WordPress REST API
-// Create an Axios instance with Basic Auth for Application Password
+const WP_URL = "https://fansynails.com.au";
+const USERNAME = process.env.WP_USERNAME;
+const APP_PASSWORD = process.env.WP_APP_PASSWORD;
 const api = axios.create({
   baseURL: WP_URL,
   auth: {
@@ -62,16 +78,14 @@ const api = axios.create({
     password: APP_PASSWORD,
   },
 });
-// Function to fetch BookingPress services
+
 async function getBookingPressServices() {
   try {
-    // Replace with actual BookingPress endpoint, e.g., /bookingpress/v1/appointments
-  console.log();
-    const response = await api.get('/wp-json/mo/v1/get-booking-services'); // Hypothetical endpoint
-    console.log('Services:', response.data);
+    const response = await api.get("/wp-json/bookingpress/v1/services");
+    console.log("Services:", response.data);
     return response.data;
   } catch (error) {
-    console.error('Error fetching services:', {
+    console.error("Error fetching services:", {
       message: error.response ? error.response.data : error.message,
       status: error.response ? error.response.status : null,
       url: error.config ? error.config.url : null,
@@ -79,15 +93,14 @@ async function getBookingPressServices() {
     throw error;
   }
 }
-// Function to fetch BookingPress appointments
+
 async function getBookingPressAppointments() {
   try {
-    // Replace with actual BookingPress endpoint, e.g., /bookingpress/v1/appointments
-    const response = await api.get('/bookingpress/v1/appointments'); // Hypothetical endpoint
-    console.log('Appointments:', response.data);
+    const response = await api.get("/wp-json/bookingpress/v1/appointments");
+    console.log("Appointments:", response.data);
     return response.data;
   } catch (error) {
-    console.error('Error fetching appointments:', {
+    console.error("Error fetching appointments:", {
       message: error.response ? error.response.data : error.message,
       status: error.response ? error.response.status : null,
       url: error.config ? error.config.url : null,
@@ -95,31 +108,25 @@ async function getBookingPressAppointments() {
     throw error;
   }
 }
-// Function to create a new appointment (hypothetical)
+
 async function createBookingPressAppointment(appointmentData) {
   try {
-    // Use current date (2025-05-30) for appointment_date
     const currentDate = new Date();
-    const formattedDate = currentDate.toISOString().split('T')[0]; // "2025-05-30"
+    const formattedDate = currentDate.toISOString().split("T")[0];
+    const hours = String(currentDate.getHours()).padStart(2, "0");
+    const minutes = String(currentDate.getMinutes()).padStart(2, "0");
+    const appointmentTime = `${hours}:${minutes}`;
 
-    // Use current time (11:13) for appointment_time
-    const hours = String(currentDate.getHours()).padStart(2, '0');
-    const minutes = String(currentDate.getMinutes()).padStart(2, '0');
-    const appointmentTime = `${hours}:${minutes}`; // "11:13"
-
-    // Validate time format (HH:MM)
     if (!/^\d{2}:\d{2}$/.test(appointmentTime)) {
-      throw new Error('Invalid time format. Use HH:MM.');
+      throw new Error("Invalid time format. Use HH:MM.");
     }
 
-    // Replace with actual BookingPress endpoint for creating appointments
-    const response = await axios.post(WP_URL + "/wp-json/bookingpress/v1/add-booking", {
-      service_id: 35, // "General Appointment"
+    const response = await api.post("/wp-json/bookingpress/v1/add-booking", {
+      service_id: 35,
       customer_phone: appointmentData.customer_phone,
-      customer_name: appointmentData.customer_phone, 
-      customer_firstname: appointmentData.customer_phone, 
-      customer_lastname: "",
-      appointment_date: formattedDate, 
+      customer_firstname: appointmentData.customer_firstname || "Guest",
+      customer_lastname: appointmentData.customer_lastname || "",
+      appointment_date: formattedDate,
       appointment_time: appointmentTime,
       payment_amount: 0.0,
       payment_status: "pending",
@@ -127,10 +134,7 @@ async function createBookingPressAppointment(appointmentData) {
     console.log("Created Appointment:", response.data);
     return response.data;
   } catch (error) {
-    console.error(
-      "Error creating appointment:",
-      error.response ? error.response.data : error.message
-    );
+    console.error("Error creating appointment:", error.response ? error.response.data : error.message);
     throw error;
   }
 }
@@ -144,27 +148,28 @@ app.use("/api/orders", orderRoutes);
 
 cron.schedule("*/5 * * * *", async () => {
   try {
-    const response = await axios.get(process.env.BACKEND_URL);
-    console.log(`Health check response: ${response.status}`);
+    const backendUrl = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+    const response = await axios.get(backendUrl);
+    if (response.status === 200) {
+      console.log(`Health check successful: ${response.status}`);
+    } else {
+      console.error(`Health check failed: Status ${response.status}`);
+    }
   } catch (error) {
     console.error(`Health check error: ${error.message}`);
   }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.get("/", async (req, res) => {
+  res.send("API server is running successfully!");
+});
 
-app.get('/', async (req, res) =>  {
-  //await createBookingPressAppointment({customer_phone: '1234567890'});
-  res.send('API server is running successfully!');
-})
-
-app.post('/createBooking', async (req, res) => {
+app.post("/createBooking", async (req, res) => {
   try {
     const { customer_phone } = req.body;
 
     if (!customer_phone) {
-      return res.status(400).json({ status: 'error', message: 'Missing required field: customer_phone' });
+      return res.status(400).json({ status: "error", message: "Missing required field: customer_phone" });
     }
 
     const appointmentData = {
@@ -172,9 +177,17 @@ app.post('/createBooking', async (req, res) => {
     };
 
     const result = await createBookingPressAppointment(appointmentData);
-    res.status(200).json({ status: 'success', message: 'Booking created', data: result });
+    res.status(200).json({ status: "success", message: "Booking created", data: result });
   } catch (error) {
-    console.error('POST / error:', error.message);
-    res.status(500).json({ status: 'error', message: error.message });
+    console.error("POST /createBooking error:", error.message);
+    res.status(500).json({ status: "error", message: error.message });
   }
 });
+
+app.use((err, req, res, next) => {
+  console.error("Error:", err.message);
+  res.status(500).json({ status: "error", message: "Internal server error" });
+});
+
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
