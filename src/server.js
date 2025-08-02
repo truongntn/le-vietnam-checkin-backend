@@ -67,6 +67,8 @@ io.on("connection", (socket) => {
         status: "success",
         message: "Phone number received",
       });
+
+      socket.broadcast.emit("receivePhoneNumber", { phoneNumber });
     } catch (error) {
       socket.emit("phoneResponse", { status: "error", message: error.message });
     }
