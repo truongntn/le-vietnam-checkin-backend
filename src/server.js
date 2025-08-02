@@ -74,6 +74,15 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("checkin", async (phoneNumber) => {
+    console.log("Received check-in with phone number:", phoneNumber);
+    try {
+      
+    } catch (error) {
+      socket.emit("phoneResponse", { status: "error", message: error.message });
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log("A user disconnected");
   });
@@ -184,12 +193,10 @@ app.post("/createBooking", async (req, res) => {
     const { customer_phone } = req.body;
 
     if (!customer_phone) {
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: "Missing required field: customer_phone",
-        });
+      return res.status(400).json({
+        status: "error",
+        message: "Missing required field: customer_phone",
+      });
     }
 
     const appointmentData = {
