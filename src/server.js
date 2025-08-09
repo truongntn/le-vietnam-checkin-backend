@@ -37,6 +37,7 @@ const io = new Server(server, {
     credentials: true,
     methods: ["GET", "POST", "OPTIONS"],
   },
+  transports: ['websocket', 'polling'], // Prioritize WebSocket
 });
 
 connectDB();
