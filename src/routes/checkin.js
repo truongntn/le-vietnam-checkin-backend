@@ -14,9 +14,9 @@ router.post("/checkin", async (req, res) => {
 
   try {
     // Check for pending orders first
-    const pendingOrder = await Order.findOne({ 
-      phone: phone, 
-      status: { $in: ['pending', 'confirmed', 'preparing', 'ready'] } 
+    const pendingOrder = await Order.findOne({
+      phone: phone,
+      status: { $in: ["pending", "confirmed", "preparing", "ready"] },
     });
 
     if (pendingOrder) {
@@ -24,7 +24,7 @@ router.post("/checkin", async (req, res) => {
         pendingOrder.checkinStatus = true;
         await pendingOrder.save();
       }
-      return res.status(400).json({ 
+      /*return res.status(400).json({ 
         message: "You have a waiting order.",
         pendingOrder: {
           orderNumber: pendingOrder.orderNumber,
@@ -34,57 +34,56 @@ router.post("/checkin", async (req, res) => {
           phone: pendingOrder.phone,
           name: pendingOrder.name,
         }
+      });*/
+      let user = await User.findOne({ phone });
+      if (!user) {
+        user = new User({ phone });
+        await user.save();
+      }
+
+      const checkIn = new CheckIn({
+        userId: user._id,
+        phone,
+        name: user.name || "Guest",
+        status,
+      });
+      await checkIn.save();
+
+      user.rewardPoints += checkIn.rewardPointsEarned;
+      await user.save();
+
+      const lastQueue = await Queue.findOne().sort({ position: -1 });
+      const position = lastQueue ? lastQueue.position + 1 : 1;
+      const estimatedWaitTime = position * 5;
+      const queueEntry = new Queue({
+        userId: user._id,
+        position,
+        estimatedWaitTime,
+        customerName: user.name || "Guest",
+        name: user.name || "Guest",
+        customerPhone: user.phone,
+      });
+      await queueEntry.save();
+
+      // Update latest active order's checkinStatus to true
+      /*const latestOrder = await Order.findOne({
+        phone: user.phone,
+        status: { $in: ["pending", "confirmed", "preparing", "ready"] },
+        checkinStatus: false,
+      }).sort({ createdAt: -1 });
+      if (latestOrder) {
+        latestOrder.checkinStatus = true;
+        await latestOrder.save();
+      }*/
+
+      res.json({
+        rewardPoints: user.rewardPoints,
+        queuePosition: position,
+        estimatedWaitTime,
+        customerName: user.name || "Guest",
+        customerPhone: user.phone,
       });
     }
-
-    let user = await User.findOne({ phone });
-    if (!user) {
-      user = new User({ phone });
-      await user.save();
-    }
-
-    const checkIn = new CheckIn({ 
-      userId: user._id, 
-      phone, 
-      name: user.name || 'Guest', 
-      status 
-    });
-    await checkIn.save();
-
-    user.rewardPoints += checkIn.rewardPointsEarned;
-    await user.save();
-
-    const lastQueue = await Queue.findOne().sort({ position: -1 });
-    const position = lastQueue ? lastQueue.position + 1 : 1;
-    const estimatedWaitTime = position * 5;
-    const queueEntry = new Queue({
-      userId: user._id,
-      position,
-      estimatedWaitTime,
-      customerName: user.name || 'Guest',
-      name: user.name || 'Guest',
-      customerPhone: user.phone,
-    });
-    await queueEntry.save();
-
-    // Update latest active order's checkinStatus to true
-    const latestOrder = await Order.findOne({
-      phone: user.phone,
-      status: { $in: ['pending', 'confirmed', 'preparing', 'ready'] },
-      checkinStatus: false
-    }).sort({ createdAt: -1 });
-    if (latestOrder) {
-      latestOrder.checkinStatus = true;
-      await latestOrder.save();
-    }
-
-    res.json({
-      rewardPoints: user.rewardPoints,
-      queuePosition: position,
-      estimatedWaitTime,
-      customerName: user.name || 'Guest',
-      customerPhone: user.phone,
-    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
@@ -116,9 +115,9 @@ router.get("/user/:phone", async (req, res) => {
     });
 
     // Check for pending orders
-    const pendingOrder = await Order.findOne({ 
-      phone: req.params.phone, 
-      status: { $in: ['pending', 'confirmed', 'preparing', 'ready'] } 
+    const pendingOrder = await Order.findOne({
+      phone: req.params.phone,
+      status: { $in: ["pending", "confirmed", "preparing", "ready"] },
     });
 
     res.json({
@@ -128,12 +127,14 @@ router.get("/user/:phone", async (req, res) => {
       customerName: user.name,
       customerPhone: user.phone,
       hasPendingOrder: !!pendingOrder,
-      pendingOrder: pendingOrder ? {
-        orderNumber: pendingOrder.orderNumber,
-        status: pendingOrder.status,
-        totalAmount: pendingOrder.totalAmount,
-        createdAt: pendingOrder.createdAt
-      } : null
+      pendingOrder: pendingOrder
+        ? {
+            orderNumber: pendingOrder.orderNumber,
+            status: pendingOrder.status,
+            totalAmount: pendingOrder.totalAmount,
+            createdAt: pendingOrder.createdAt,
+          }
+        : null,
     });
   } catch (error) {
     console.error(error);
