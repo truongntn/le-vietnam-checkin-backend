@@ -156,7 +156,7 @@ router.get("/users", auth, async (req, res) => {
 // Get all check-ins
 router.get("/", async (req, res) => {
   try {
-    const checkIns = await CheckIn.find({ status: "waiting" })
+    const checkIns = await CheckIn.find({ status: { $in: ["pending", "confirmed", "preparing", "ready", "waiting"] } })
       .sort({ checkInTime: -1 })
       .populate("userId", "phone name");
     res.json(checkIns);
