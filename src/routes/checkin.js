@@ -56,7 +56,7 @@ router.post("/checkin", async (req, res) => {
         });
         await checkIn.save();
 
-        user.rewardPoints += checkIn.rewardPointsEarned;
+        /*user.rewardPoints += checkIn.rewardPointsEarned;
         await user.save();
 
         const lastQueue = await Queue.findOne().sort({ position: -1 });
@@ -73,7 +73,7 @@ router.post("/checkin", async (req, res) => {
         await queueEntry.save();
 
         // Update latest active order's checkinStatus to true
-        /*const latestOrder = await Order.findOne({
+        const latestOrder = await Order.findOne({
       phone: user.phone,
       status: { $in: ["pending", "confirmed", "preparing", "ready"] },
       checkinStatus: false,
@@ -81,7 +81,7 @@ router.post("/checkin", async (req, res) => {
     if (latestOrder) {
       latestOrder.checkinStatus = true;
       await latestOrder.save();
-    }*/
+    }
 
         res.json({
           rewardPoints: user.rewardPoints,
@@ -89,8 +89,19 @@ router.post("/checkin", async (req, res) => {
           estimatedWaitTime,
           customerName: user.name || "Guest",
           customerPhone: user.phone,
-        });
+        });*/
       }
+      return res.status(400).json({
+        message: "You have a waiting order.",
+        pendingOrder: {
+          orderNumber: pendingOrder.orderNumber,
+          status: pendingOrder.status,
+          totalAmount: pendingOrder.totalAmount,
+          createdAt: pendingOrder.createdAt,
+          phone: pendingOrder.phone,
+          name: pendingOrder.name,
+        },
+      });
     }
   } catch (error) {
     console.error(error);
