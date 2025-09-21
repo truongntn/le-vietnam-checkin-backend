@@ -4,7 +4,6 @@ const User = require("../models/User");
 const Order = require("../models/Order");
 const OrderDetail = require("../models/OrderDetail");
 const auth = require("../middleware/auth");
-const mongoose = require("mongoose"); // added
 
 // Generate unique order number
 const generateOrderNumber = () => {
@@ -138,66 +137,40 @@ router.get("/", async (req, res) => {
 // Get history orders (with pagination)
 router.get("/history", async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      status,
-      phone,
-      date, // optional single day: YYYY-MM-DD
-      startDate, // optional range start: YYYY-MM-DD
-      endDate, // optional range end: YYYY-MM-DD
-    } = req.query;
+    const { page = 1, limit = 10, status, phone } = req.query;
+    const skip = (page - 1) * limit;
 
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 10;
-    const skip = (pageNum - 1) * limitNum;
+    // Get the current date and set it to the beginning of the day (UTC)
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
 
-    // base query: completed unless overridden by ?status=
-    let query = { status: "completed" };
+    // Get the beginning of the next day (UTC)
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setUTCDate(startOfDay.getUTCDate() + 1);
+
+    let query = {
+      status: "completed",
+      updatedAt: {
+        $gte: startOfDay,
+        $lt: endOfDay,
+      },
+    }; // Completed orders
     if (status) query.status = status;
     if (phone) query.phone = phone;
-
-    // optional date filtering
-    if (date) {
-      const d = new Date(date);
-      if (!isNaN(d)) {
-        const startOfDay = new Date(d);
-        startOfDay.setUTCHours(0, 0, 0, 0);
-        const endOfDay = new Date(startOfDay);
-        endOfDay.setUTCDate(startOfDay.getUTCDate() + 1);
-        query.updatedAt = { $gte: startOfDay, $lt: endOfDay };
-      }
-    } else if (startDate || endDate) {
-      const gte = startDate ? new Date(startDate) : null;
-      const lt =
-        endDate && !isNaN(new Date(endDate))
-          ? (() => {
-              const e = new Date(endDate);
-              e.setUTCDate(e.getUTCDate() + 1);
-              e.setUTCHours(0, 0, 0, 0);
-              return e;
-            })()
-          : null;
-      query.updatedAt = {};
-      if (gte && !isNaN(gte)) query.updatedAt.$gte = gte;
-      if (lt) query.updatedAt.$lt = lt;
-      // if both are invalid, remove updatedAt filter
-      if (Object.keys(query.updatedAt).length === 0) delete query.updatedAt;
-    }
 
     const orders = await Order.find(query)
       .populate("userId", "phone name rewardPoints")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limitNum);
+      .limit(parseInt(limit));
 
     const total = await Order.countDocuments(query);
 
     res.json({
       orders,
       total,
-      page: pageNum,
-      totalPages: Math.ceil(total / limitNum),
+      page: parseInt(page),
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     console.error(error);
@@ -231,12 +204,7 @@ router.get("/latest", async (req, res) => {
 // Get order by ID with details
 router.get("/:id", async (req, res) => {
   try {
-    const id = req.params.id;
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid order id" });
-    }
-
-    const order = await Order.findById(id).populate(
+    const order = await Order.findById(req.params.id).populate(
       "userId",
       "phone name rewardPoints"
     );
@@ -279,9 +247,7 @@ router.get("/user/:phone", async (req, res) => {
 // Update order status
 router.put("/:id/status", async (req, res) => {
   const { status } = req.body;
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ message: "Invalid order id" });
-  }
+
   if (!status) {
     return res.status(400).json({ message: "Status is required" });
   }
@@ -305,9 +271,7 @@ router.put("/:id/status", async (req, res) => {
 // Update payment status
 router.put("/:id/payment", auth, async (req, res) => {
   const { paymentStatus } = req.body;
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ message: "Invalid order id" });
-  }
+
   if (!paymentStatus) {
     return res.status(400).json({ message: "Payment status is required" });
   }
@@ -330,9 +294,6 @@ router.put("/:id/payment", auth, async (req, res) => {
 
 // Update order details
 router.put("/:id", auth, async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ message: "Invalid order id" });
-  }
   const {
     status,
     paymentStatus,
@@ -371,9 +332,6 @@ router.put("/:id", auth, async (req, res) => {
 
 // Delete order
 router.delete("/:id", auth, async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ message: "Invalid order id" });
-  }
   try {
     const order = await Order.findById(req.params.id);
     if (!order) {
