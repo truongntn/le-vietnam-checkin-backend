@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Order = require("../models/Order");
 const OrderDetail = require("../models/OrderDetail");
 const auth = require("../middleware/auth");
+const mongoose = require("mongoose"); // added
 
 // Generate unique order number
 const generateOrderNumber = () => {
@@ -147,8 +148,8 @@ router.get("/history", async (req, res) => {
       endDate, // optional range end: YYYY-MM-DD
     } = req.query;
 
-    const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.max(1, parseInt(limit, 10) || 10);
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
     const skip = (pageNum - 1) * limitNum;
 
     // base query: completed unless overridden by ?status=
@@ -156,42 +157,33 @@ router.get("/history", async (req, res) => {
     if (status) query.status = status;
     if (phone) query.phone = phone;
 
-    const isISODate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s);
-
     // optional date filtering
     if (date) {
-      if (!isISODate(date)) {
-        return res.status(400).json({ message: "Invalid date format. Use YYYY-MM-DD." });
+      const d = new Date(date);
+      if (!isNaN(d)) {
+        const startOfDay = new Date(d);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setUTCDate(startOfDay.getUTCDate() + 1);
+        query.updatedAt = { $gte: startOfDay, $lt: endOfDay };
       }
-      const d = new Date(date + "T00:00:00Z");
-      const startOfDay = new Date(d);
-      const endOfDay = new Date(startOfDay);
-      endOfDay.setUTCDate(startOfDay.getUTCDate() + 1);
-      query.updatedAt = { $gte: startOfDay, $lt: endOfDay };
     } else if (startDate || endDate) {
-      if (startDate && !isISODate(startDate)) {
-        return res.status(400).json({ message: "Invalid startDate format. Use YYYY-MM-DD." });
-      }
-      if (endDate && !isISODate(endDate)) {
-        return res.status(400).json({ message: "Invalid endDate format. Use YYYY-MM-DD." });
-      }
-
-      const gte = startDate ? new Date(startDate + "T00:00:00Z") : null;
-      const lt = endDate ? (() => {
-        const e = new Date(endDate + "T00:00:00Z");
-        e.setUTCDate(e.getUTCDate() + 1);
-        return e;
-      })() : null;
-
-      if (gte || lt) {
-        query.updatedAt = {};
-        if (gte) query.updatedAt.$gte = gte;
-        if (lt) query.updatedAt.$lt = lt;
-      }
+      const gte = startDate ? new Date(startDate) : null;
+      const lt =
+        endDate && !isNaN(new Date(endDate))
+          ? (() => {
+              const e = new Date(endDate);
+              e.setUTCDate(e.getUTCDate() + 1);
+              e.setUTCHours(0, 0, 0, 0);
+              return e;
+            })()
+          : null;
+      query.updatedAt = {};
+      if (gte && !isNaN(gte)) query.updatedAt.$gte = gte;
+      if (lt) query.updatedAt.$lt = lt;
+      // if both are invalid, remove updatedAt filter
+      if (Object.keys(query.updatedAt).length === 0) delete query.updatedAt;
     }
-
-    // debug log for incoming query (helps track 500)
-    console.debug("GET /api/orders/history query:", req.query, "builtQuery:", query);
 
     const orders = await Order.find(query)
       .populate("userId", "phone name rewardPoints")
@@ -208,7 +200,7 @@ router.get("/history", async (req, res) => {
       totalPages: Math.ceil(total / limitNum),
     });
   } catch (error) {
-    console.error("GET /api/orders/history error:", error.stack || error);
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -239,7 +231,12 @@ router.get("/latest", async (req, res) => {
 // Get order by ID with details
 router.get("/:id", async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate(
+    const id = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid order id" });
+    }
+
+    const order = await Order.findById(id).populate(
       "userId",
       "phone name rewardPoints"
     );
@@ -282,7 +279,9 @@ router.get("/user/:phone", async (req, res) => {
 // Update order status
 router.put("/:id/status", async (req, res) => {
   const { status } = req.body;
-
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: "Invalid order id" });
+  }
   if (!status) {
     return res.status(400).json({ message: "Status is required" });
   }
@@ -306,7 +305,9 @@ router.put("/:id/status", async (req, res) => {
 // Update payment status
 router.put("/:id/payment", auth, async (req, res) => {
   const { paymentStatus } = req.body;
-
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: "Invalid order id" });
+  }
   if (!paymentStatus) {
     return res.status(400).json({ message: "Payment status is required" });
   }
@@ -329,6 +330,9 @@ router.put("/:id/payment", auth, async (req, res) => {
 
 // Update order details
 router.put("/:id", auth, async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: "Invalid order id" });
+  }
   const {
     status,
     paymentStatus,
@@ -367,6 +371,9 @@ router.put("/:id", auth, async (req, res) => {
 
 // Delete order
 router.delete("/:id", auth, async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({ message: "Invalid order id" });
+  }
   try {
     const order = await Order.findById(req.params.id);
     if (!order) {
