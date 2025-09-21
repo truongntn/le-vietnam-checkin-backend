@@ -137,40 +137,66 @@ router.get("/", async (req, res) => {
 // Get history orders (with pagination)
 router.get("/history", async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, phone } = req.query;
-    const skip = (page - 1) * limit;
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      phone,
+      date, // optional single day: YYYY-MM-DD
+      startDate, // optional range start: YYYY-MM-DD
+      endDate, // optional range end: YYYY-MM-DD
+    } = req.query;
 
-    // Get the current date and set it to the beginning of the day (UTC)
-    const startOfDay = new Date();
-    startOfDay.setUTCHours(0, 0, 0, 0);
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
+    const skip = (pageNum - 1) * limitNum;
 
-    // Get the beginning of the next day (UTC)
-    const endOfDay = new Date(startOfDay);
-    endOfDay.setUTCDate(startOfDay.getUTCDate() + 1);
-
-    let query = {
-      status: "completed",
-      updatedAt: {
-        $gte: startOfDay,
-        $lt: endOfDay,
-      },
-    }; // Completed orders
+    // base query: completed unless overridden by ?status=
+    let query = { status: "completed" };
     if (status) query.status = status;
     if (phone) query.phone = phone;
+
+    // optional date filtering
+    if (date) {
+      const d = new Date(date);
+      if (!isNaN(d)) {
+        const startOfDay = new Date(d);
+        startOfDay.setUTCHours(0, 0, 0, 0);
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setUTCDate(startOfDay.getUTCDate() + 1);
+        query.updatedAt = { $gte: startOfDay, $lt: endOfDay };
+      }
+    } else if (startDate || endDate) {
+      const gte = startDate ? new Date(startDate) : null;
+      const lt =
+        endDate && !isNaN(new Date(endDate))
+          ? (() => {
+              const e = new Date(endDate);
+              e.setUTCDate(e.getUTCDate() + 1);
+              e.setUTCHours(0, 0, 0, 0);
+              return e;
+            })()
+          : null;
+      query.updatedAt = {};
+      if (gte && !isNaN(gte)) query.updatedAt.$gte = gte;
+      if (lt) query.updatedAt.$lt = lt;
+      // if both are invalid, remove updatedAt filter
+      if (Object.keys(query.updatedAt).length === 0) delete query.updatedAt;
+    }
 
     const orders = await Order.find(query)
       .populate("userId", "phone name rewardPoints")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limitNum);
 
     const total = await Order.countDocuments(query);
 
     res.json({
       orders,
       total,
-      page: parseInt(page),
-      totalPages: Math.ceil(total / limit),
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
     });
   } catch (error) {
     console.error(error);
